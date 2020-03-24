@@ -4,7 +4,7 @@ const balanceSum = (accounts) => {
     for (var i = 0; i < accounts.length; i++) {
         sum += accounts[i].balance
     }
-    return sum / 100
+    return Math.round(sum / 100)
 }
 
 const balanceSum_2 = (transactions) => {
@@ -23,7 +23,7 @@ const timestampToDate = (ts) => {
 }
 
 const balanceSum_3 = (transactions) => {
-    var sum = -100000;
+    var sum =0;
     var a=[]
     for (var i = 0; i < transactions.length; i++) {
         sum += transactions[i].amount

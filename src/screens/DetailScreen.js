@@ -1,7 +1,6 @@
 import React from 'react';
 import { Text, Image, View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import Moment from 'react-moment';
-import { Utils, Storage } from '../helpers/Index'
+import { Storage } from '../helpers/Index'
 import AsyncStorage from '@react-native-community/async-storage'
 
 
@@ -12,40 +11,43 @@ export class DetailScreen extends React.Component {
         this.state = {
             categories: this.props.navigation.getParam('categories'),
             data: null,
+            trans: null,
             loading: true,
-            id: this.props.navigation.getParam('id'),
+            id3: null,
         }
     }
 
 
     componentDidMount() {
+
         Storage.get('data', (data) => {
             this.setState({
                 loading: false,
                 data: JSON.parse(data),
             })
         })
-    }
 
-    saveInfo_2 = async () => {
-        var o;
-        for (var i = 0; i < this.state.data.length; i++) {
-            if (this.state.title == this.state.data[i].title)
-                o = i
-        }
-        if (this.state.data != null) {
-            let o = this.state.data[this.state.id - 1].transactions.length
-            this.state.data[this.state.id - 1].balance = Utils.balanceSum_3(this.state.data[this.state.id - 1].transactions)[this.state.data[this.state.id - 1].transactions.length - 1] * 100
-            this.state.data[o].balance = Utils.balanceSum_3(this.state.data[o].transactions)[this.state.data[o].transactions.length - 1] * 100
-            AsyncStorage.setItem('data', JSON.stringify(this.state.data));
-        }
+        Storage.get('bookmarks', (bookmarks) => {
+            this.setState({
+                loading: false,
+                bookmarks: JSON.parse(bookmarks),
+            })
+        })
     }
 
     onFocusFunction = () => {
+
         Storage.get('data', (data) => {
             this.setState({
                 loading: false,
                 data: JSON.parse(data),
+            })
+        })
+
+        Storage.get('bookmarks', (bookmarks) => {
+            this.setState({
+                loading: false,
+                bookmarks: JSON.parse(bookmarks),
             })
         })
     }
@@ -61,82 +63,62 @@ export class DetailScreen extends React.Component {
         this.focusListener.remove()
     }
 
+
+
+    removeBookmark = async () => {
+        for (var i = 0; i < this.state.data.length; i++) {
+            if (this.state.data[i].title == this.state.bookmarks[this.state.id3 - 1].title) {
+                this.state.data[i].isBookmarked = false
+                AsyncStorage.setItem('data', JSON.stringify(this.state.data));
+            }
+        }
+        this.state.bookmarks.splice(this.state.id3 - 1, 1)
+        AsyncStorage.setItem('bookmarks', JSON.stringify(this.state.bookmarks));
+    }
+
+
     render() {
-
-        this.saveInfo_2()
-
         if (this.state.loading)
             return <ActivityIndicator />
         return (
-
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.leftHeader}
-                        onPress={() => {
-                            this.props.navigation.navigate('Home')
-                        }}
-                    ><Image source={require('../assets/image/back.png')} style={styles.back}
-                        />
-                        <Text style={styles.leftHeaderText}>Cчета</Text></TouchableOpacity>
-
-
-                    <View style={styles.centerHeader}
-                    ><Text style={styles.centerHeaderText}>{this.state.title}</Text></View>
+                    <TouchableOpacity style={styles.leftHeader} onPress={() => {
+                        this.props.navigation.navigate('Home')
+                    }}><Text style={styles.leftHeaderText}>Фильмы</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.centerHeader}
+                    ><Text style={styles.centerHeaderText}>Избранное</Text></TouchableOpacity>
                 </View>
 
                 <FlatList
-                    data={this.state.data[this.state.id - 1].transactions}
-                    style={styles.list}
-                    renderItem={({ item }) => (
+                    data={this.state.bookmarks}
+                    renderItem={({ item, index }) => (
+
                         <View
                             style={styles.listItem}
                         >
+                            <View style={styles.firstColumnStyle} >
+                                <Text style={styles.listTitle}
+                                >{item.title}</Text>
+                            </View>
 
-                            <TouchableOpacity
-                                style={styles.firstColumnStyle}
-                                onPress={() => {
-                                    this.props.navigation.navigate('DeepDetail', {
-                                        id_home: this.state.id,
-                                        id: item.id,
-                                        categories: this.state.categories,
-                                        category: this.state.categories.filter(f => f.id === item.category)[0].id,
-                                    })
-                                }}>
-
-                                <View>
-                                    <View style={styles.subFirstColumn}>
-                                        <Moment format="DD.MM.YYYY"
-                                            style={styles.listTitle} element={Text} unix>{item.date}</Moment>
-                                        <Text style={styles.listTitle} numberOfLines={1}>{' ' + ' ' + '<' + item.title + '>'}</Text>
-                                    </View>
-
-                                    <View>
-                                        {<Text style={styles.listTitle_2} >
-                                            {this.state.categories.filter(f => f.id === item.category)[0].title}   </Text>}
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
                             <View style={styles.secondColumnStyle}>
-                                <View style={styles.subSecondColumn}>{item.amount / 100 >= 0 ? <View style={styles.thirdColumnStyle}>
-                                    <Text style={styles.sumStyle}>{item.amount / 100 + " " + "₽"}</Text></View> :
-                                    <View style={styles.thirdColumnStyle}><Text style={styles.sumStyle_2}>{Math.abs(item.amount) / 100 + " " + "₽"}
-                                    </Text>
-                                    </View>}
-                                    <Image source={require('../assets/image/forward.png')} style={styles.forward} />
-                                </View>
-                                <View><Text style={styles.balance}>
-                                    {Utils.balanceSum_3(this.state.data[this.state.id - 1].transactions)[item.id - 1] + " " + "₽"}
 
-                                </Text>
-                                </View>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        this.setState({ id3: index + 1, });
+                                        this.state.id3 = index + 1
+                                        this.removeBookmark();
+                                    }
+                                    }
+                                >
+
+                                    <Image source={require('../assets/image/bookmark.png')} style={styles.plus}
+                                    /></TouchableOpacity>
                             </View>
                         </View>
                     )}
                     keyExtractor={(item, index) => index.toString()} />
-
-                <View style={styles.keller}>
-                    <Text style={styles.kellerText}>Текущий баланс {Utils.balanceSum_3(this.state.data[this.state.id - 1].transactions)[this.state.data[this.state.id - 1].transactions.length - 1] + " " + "₽"} </Text>
-                </View>
             </View >
         );
     }
@@ -190,7 +172,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         paddingVertical: 4,
         paddingHorizontal: 4,
-        justifyContent: "space-between"
+        justifyContent: "space-between",
 
     },
     firstColumnStyle: {
@@ -243,6 +225,7 @@ const styles = StyleSheet.create({
     listTitle: {
         fontSize: 16,
     },
+
     listTitle_2: {
         fontSize: 16,
         paddingTop: 12
@@ -258,5 +241,27 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         alignSelf: 'center',
-    }
+    },
+    plus: {
+        marginTop: 0,
+        width: 20,
+        height: 20,
+        marginRight: 15
+    },
+    leftHeader: {
+
+    },
+    leftHeaderText: {
+        color: "black",
+        fontWeight: 'bold',
+        fontSize: 18
+    },
+    centerHeader: {
+        paddingLeft: 80
+    },
+    centerHeaderText: {
+        color: "dodgerblue",
+        fontWeight: 'bold',
+        fontSize: 18
+    },
 })
